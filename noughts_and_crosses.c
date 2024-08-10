@@ -1,19 +1,15 @@
-#include <stdio.h>
 #include <raylib.h>
-#include <assert.h>
-
-//typedef void (*DrawFunctionPointer)(Rectangle); // lol this is stupid and way overcomplicated but funny
 
 enum PLAYER_TURN{
     NOUGHT  = 1,
     CROSS   = 2
 };
 
-// return has width = tpo 32 bits, height = bottom 32 bits
-long get_section_width_height(int win_height, int win_width, int line_thickness, int border_offset){
+// return has width = top 32 bits, height = bottom 32 bits
+Vector2 get_section_width_height(int win_height, int win_width, int line_thickness, int border_offset){
     int section_width = ((float)win_width - 2*border_offset - 2*line_thickness)/3;
     int section_height = ((float)win_height - 2*border_offset - 2*line_thickness)/3;
-    return ((long)section_width << 32) | section_height;
+    return (Vector2){section_width, section_height};
 }
 
 // returns the rectangle which fills the top left section of the board
@@ -33,8 +29,6 @@ Rectangle draw_board(int win_height, int win_width, int section_width, int secti
 
 int in_section(Rectangle* sections, int x, int y){
     for(int i = 0; i < 9; i++){
-        int sec_x = sections[i].x;
-        int sec_y = sections[i].y;
         if(x >= sections[i].x && x <= sections[i].x + sections[i].width){
             if(y >= sections[i].y && y <= sections[i].y + sections[i].height){
                 return i;
@@ -83,6 +77,15 @@ bool is_winning(bool plays[9]){
     return false;
 }
 
+bool is_draw(bool pl1[9], bool pl2[9]){
+    for(int i = 0; i < 9; i++){
+        if(!(pl1[i] || pl2[i])){
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
  *  -----------
  * |_0_|_1_|_2_|
@@ -94,11 +97,11 @@ bool is_winning(bool plays[9]){
 int main(){
     const int WIN_WIDTH = 1000;
     const int WIN_HEIGHT = 1000;
-    const int FPS = 20;
+    const int FPS = 30;
     const int LINE_THICKNESS = 20;
     const int BORDER_OFFSET = 60;
 
-    InitWindow(WIN_WIDTH, WIN_HEIGHT, "Tic-Tac-Toe");
+    InitWindow(WIN_WIDTH, WIN_HEIGHT, "Noughts & Crosses");
     SetTargetFPS(FPS);
 
     enum PLAYER_TURN player = CROSS;
@@ -108,10 +111,9 @@ int main(){
     bool noughts[9] = {false};
     bool crosses[9] = {false};
     
-    //DrawFunctionPointer section_draw_fns[9] = {NULL};
-    long packed_section_width_height = get_section_width_height(WIN_HEIGHT, WIN_WIDTH, LINE_THICKNESS, BORDER_OFFSET);
-    int section_width = packed_section_width_height >> 32;
-    int section_height = (int)packed_section_width_height;
+    Vector2 section_width_height = get_section_width_height(WIN_HEIGHT, WIN_WIDTH, LINE_THICKNESS, BORDER_OFFSET);
+    int section_width = section_width_height.x;
+    int section_height = section_width_height.y;
 
     // generate section boundaries
     sections[0] = (Rectangle){.x = BORDER_OFFSET, .y = BORDER_OFFSET, .width = section_width, .height = section_height};
@@ -134,9 +136,6 @@ int main(){
         
         // Draw sections
         for(int i = 0; i < 9; i++){
-            //if(section_draw_fns[i] != NULL){
-            //    (*section_draw_fns[i])(sections[i]); // lol wtf
-            //}
             if(crosses[i]){
                 draw_cross(sections[i]);
             }else if(noughts[i]){
@@ -152,14 +151,10 @@ int main(){
             if(clicked_section > -1 && !(noughts[clicked_section] || crosses[clicked_section])){
                 if(player == CROSS && !noughts[clicked_section]){
                     crosses[clicked_section] = true;
-                    //section_draw_fns[clicked_section] = &draw_cross;
                     player = NOUGHT;
                 }else if(player == NOUGHT && !crosses[clicked_section]){
                     noughts[clicked_section] = true;
-                    //section_draw_fns[clicked_section] = &draw_nought;
                     player = CROSS;
-                }else{
-                    assert(0 && "unreachable");
                 }
             }
         }
@@ -171,9 +166,14 @@ int main(){
             int size = 50;
             DrawText(win_str, (WIN_WIDTH/2) - (text_len*size)/4, WIN_HEIGHT - size, size, WHITE);
             game_is_over = true;
-        }
-        if(is_winning(noughts)){
+        }else if(is_winning(noughts)){
             char win_str[50] = "Noughts win!";
+            int text_len = TextLength(win_str);
+            int size = 50;
+            DrawText(win_str, (WIN_WIDTH/2) - (text_len*size)/4, WIN_HEIGHT - size, size, WHITE);
+            game_is_over = true;
+        }else if(is_draw(noughts, crosses)){
+            char win_str[50] = "Draw!";
             int text_len = TextLength(win_str);
             int size = 50;
             DrawText(win_str, (WIN_WIDTH/2) - (text_len*size)/4, WIN_HEIGHT - size, size, WHITE);
@@ -185,7 +185,6 @@ int main(){
         // reset
         if(IsKeyPressed(KEY_R)){
             for(int i = 0; i < 9; i ++){
-                //section_draw_fns[i] = NULL;
                 crosses[i] = false;
                 noughts[i] = false;
                 player = CROSS;
