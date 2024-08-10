@@ -7,8 +7,8 @@ enum PLAYER_TURN{
 
 // return has width = top 32 bits, height = bottom 32 bits
 Vector2 get_section_width_height(int win_height, int win_width, int line_thickness, int border_offset){
-    int section_width = ((float)win_width - 2*border_offset - 2*line_thickness)/3;
-    int section_height = ((float)win_height - 2*border_offset - 2*line_thickness)/3;
+    int section_width = (win_width - 2*border_offset - 2*line_thickness)/3;
+    int section_height = (win_height - 2*border_offset - 2*line_thickness)/3;
     return (Vector2){section_width, section_height};
 }
 
@@ -77,9 +77,9 @@ bool is_winning(bool plays[9]){
     return false;
 }
 
-bool is_draw(bool pl1[9], bool pl2[9]){
+bool board_is_full(bool noughts[9], bool crosses[9]){
     for(int i = 0; i < 9; i++){
-        if(!(pl1[i] || pl2[i])){
+        if(!(noughts[i] || crosses[i])){
             return false;
         }
     }
@@ -129,20 +129,6 @@ int main(){
 
     // main game loop
     while(!WindowShouldClose()){
-        BeginDrawing();
-        ClearBackground(BLACK);
-        //DrawFPS(10, 10);
-        (void)draw_board(WIN_HEIGHT, WIN_WIDTH, section_width, section_height, LINE_THICKNESS, BORDER_OFFSET);
-        
-        // Draw sections
-        for(int i = 0; i < 9; i++){
-            if(crosses[i]){
-                draw_cross(sections[i]);
-            }else if(noughts[i]){
-                draw_nought(sections[i]);
-            }
-        }
-
         // process inputs
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !game_is_over){
             int mousex = GetMouseX();
@@ -159,6 +145,30 @@ int main(){
             }
         }
 
+        // reset
+        if(IsKeyPressed(KEY_R)){
+            for(int i = 0; i < 9; i ++){
+                crosses[i] = false;
+                noughts[i] = false;
+                player = CROSS;
+                game_is_over = false;
+            }
+        }
+
+        BeginDrawing();
+        ClearBackground(BLACK);
+        //DrawFPS(10, 10);
+        (void)draw_board(WIN_HEIGHT, WIN_WIDTH, section_width, section_height, LINE_THICKNESS, BORDER_OFFSET);
+        
+        // Draw sections
+        for(int i = 0; i < 9; i++){
+            if(crosses[i]){
+                draw_cross(sections[i]);
+            }else if(noughts[i]){
+                draw_nought(sections[i]);
+            }
+        }
+
         // check win state
         if(is_winning(crosses)){
             char win_str[50] = "Crosses win!";
@@ -172,26 +182,16 @@ int main(){
             int size = 50;
             DrawText(win_str, (WIN_WIDTH/2) - (text_len*size)/4, WIN_HEIGHT - size, size, WHITE);
             game_is_over = true;
-        }else if(is_draw(noughts, crosses)){
+        }else if(board_is_full(noughts, crosses)){
             char win_str[50] = "Draw!";
             int text_len = TextLength(win_str);
             int size = 50;
             DrawText(win_str, (WIN_WIDTH/2) - (text_len*size)/4, WIN_HEIGHT - size, size, WHITE);
             game_is_over = true;
         }
-
         EndDrawing();
-
-        // reset
-        if(IsKeyPressed(KEY_R)){
-            for(int i = 0; i < 9; i ++){
-                crosses[i] = false;
-                noughts[i] = false;
-                player = CROSS;
-                game_is_over = false;
-            }
-        }
     }
     CloseWindow();
+
     return 0;
 }
